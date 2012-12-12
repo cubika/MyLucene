@@ -1,0 +1,7 @@
+需要的jar包：comoms-logging.jar, fontbox.jar lucene-memory.jar, pdfbox.jar
+当然，还需要lucene.jar和poi.jar
+
+可以对word,pdf,txt,html建立索引并查询，查询结果进行高亮处理，显示在swing的JTextPane里面，以text/html的形式显示
+
+分页的功能还没有实现。错误处理不完善，测试工作还没有展开。
+
