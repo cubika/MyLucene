@@ -28,17 +28,37 @@ import java.io.StringReader;
 import javax.swing.JFileChooser;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import javax.swing.JComboBox;
+import javax.swing.DefaultComboBoxModel;
 
-public class LuceneFrame extends JFrame {
+public class LuceneFrame extends JFrame implements ActionListener {
 
 	private static final long serialVersionUID = -3153508170604549026L;
 	private JPanel contentPane;
 	private JTextField queryTextField;
 	private JTextField docTextField;
 	private JTextField indexTextField;
+	private JTextPane textPane;
+	private JLabel lblQueryRequired;
+	private JLabel lblPage;
 	
 	private File docFile;
 	private File indexFile;
+	
+	private JButton btnSearch;
+	private JButton btnFirst;
+	private JButton btnPre;
+	private JButton btnNext;
+	private JButton btnLast;
+	private JComboBox<String> comboBox;
+	
+	private Queryer queryer=new Queryer();
+	private String queryWord;
+	
+	private HTMLEditorKit kit;
+	private Document doc;
+	private StyleSheet ss;
+	
 	/**
 	 * @wbp.nonvisual location=149,597
 	 */
@@ -202,13 +222,17 @@ public class LuceneFrame extends JFrame {
 		queryTextField = new JTextField();
 		queryTextField.setColumns(10);
 		
-		final JLabel lblQueryRequired = new JLabel("");
+		lblQueryRequired = new JLabel("");
 		lblQueryRequired.setForeground(Color.RED);
 		lblQueryRequired.setFont(new Font("Consolas", Font.PLAIN, 12));
 		lblQueryRequired.setHorizontalAlignment(SwingConstants.CENTER);
 		
-		JButton btnSearch = new JButton("Search");
+		btnSearch = new JButton("Search");
 		btnSearch.setFont(new Font("Consolas", Font.PLAIN, 14));
+		btnSearch.addActionListener(this);
+		
+		lblPage = new JLabel("");
+		lblPage.setFont(new Font("·ÂËÎ", Font.BOLD, 12));
 		
 
 		GroupLayout gl_search_header_pane = new GroupLayout(search_header_pane);
@@ -219,36 +243,98 @@ public class LuceneFrame extends JFrame {
 					.addGroup(gl_search_header_pane.createParallelGroup(Alignment.LEADING, false)
 						.addComponent(lblQueryRequired, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
 						.addComponent(queryTextField, Alignment.TRAILING, GroupLayout.DEFAULT_SIZE, 259, Short.MAX_VALUE))
-					.addGap(38)
-					.addComponent(btnSearch)
-					.addContainerGap(201, Short.MAX_VALUE))
+					.addGroup(gl_search_header_pane.createParallelGroup(Alignment.TRAILING)
+						.addGroup(gl_search_header_pane.createSequentialGroup()
+							.addGap(38)
+							.addComponent(btnSearch)
+							.addContainerGap(201, Short.MAX_VALUE))
+						.addGroup(gl_search_header_pane.createSequentialGroup()
+							.addPreferredGap(ComponentPlacement.RELATED)
+							.addComponent(lblPage, GroupLayout.PREFERRED_SIZE, 192, GroupLayout.PREFERRED_SIZE))))
 		);
 		gl_search_header_pane.setVerticalGroup(
 			gl_search_header_pane.createParallelGroup(Alignment.TRAILING)
 				.addGroup(gl_search_header_pane.createSequentialGroup()
 					.addContainerGap(21, Short.MAX_VALUE)
-					.addGroup(gl_search_header_pane.createParallelGroup(Alignment.BASELINE)
-						.addComponent(queryTextField, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE)
-						.addComponent(btnSearch))
-					.addGap(14)
-					.addComponent(lblQueryRequired)
-					.addContainerGap())
+					.addGroup(gl_search_header_pane.createParallelGroup(Alignment.LEADING)
+						.addGroup(gl_search_header_pane.createSequentialGroup()
+							.addGroup(gl_search_header_pane.createParallelGroup(Alignment.BASELINE)
+								.addComponent(queryTextField, GroupLayout.PREFERRED_SIZE, 29, GroupLayout.PREFERRED_SIZE)
+								.addComponent(btnSearch))
+							.addGap(14)
+							.addComponent(lblQueryRequired)
+							.addContainerGap())
+						.addComponent(lblPage, Alignment.TRAILING)))
 		);
 		search_header_pane.setLayout(gl_search_header_pane);
 		
 		JPanel search_footer_pane = new JPanel();
 		panel_1.add(search_footer_pane, BorderLayout.SOUTH);
 		
-		final JTextPane textPane = new JTextPane();
+		btnFirst = new JButton("\u9996\u9875");
+		btnFirst.setFont(new Font("·ÂËÎ", Font.BOLD, 14));
+		btnFirst.addActionListener(this);
+		btnPre = new JButton("\u4E0A\u4E00\u9875");
+		btnPre.setFont(new Font("·ÂËÎ", Font.BOLD, 14));
+		btnPre.addActionListener(this);
+		btnNext = new JButton("\u4E0B\u4E00\u9875");
+		btnNext.setFont(new Font("·ÂËÎ", Font.BOLD, 14));	
+		btnNext.addActionListener(this);
+		btnLast = new JButton("\u5C3E\u9875");
+		btnLast.setFont(new Font("·ÂËÎ", Font.BOLD, 14));
+		btnLast.addActionListener(this);
+		
+		comboBox = new JComboBox<String>();
+		comboBox.setFont(new Font("Consolas", Font.PLAIN, 14));
+		comboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"5", "10", "15"}));
+		comboBox.setToolTipText("");
+		comboBox.addActionListener(this);
+		
+		JLabel lblNewLabel = new JLabel("\u6BCF\u9875\u663E\u793A");
+		lblNewLabel.setFont(new Font("·ÂËÎ", Font.BOLD, 14));
+		GroupLayout gl_search_footer_pane = new GroupLayout(search_footer_pane);
+		gl_search_footer_pane.setHorizontalGroup(
+			gl_search_footer_pane.createParallelGroup(Alignment.LEADING)
+				.addGroup(gl_search_footer_pane.createSequentialGroup()
+					.addGap(112)
+					.addComponent(btnFirst, GroupLayout.PREFERRED_SIZE, 72, GroupLayout.PREFERRED_SIZE)
+					.addGap(56)
+					.addComponent(btnPre)
+					.addGap(45)
+					.addComponent(btnNext)
+					.addGap(50)
+					.addComponent(btnLast, GroupLayout.PREFERRED_SIZE, 75, GroupLayout.PREFERRED_SIZE)
+					.addPreferredGap(ComponentPlacement.RELATED, 43, Short.MAX_VALUE)
+					.addComponent(lblNewLabel)
+					.addPreferredGap(ComponentPlacement.UNRELATED)
+					.addComponent(comboBox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+					.addGap(22))
+		);
+		gl_search_footer_pane.setVerticalGroup(
+			gl_search_footer_pane.createParallelGroup(Alignment.TRAILING)
+				.addGroup(gl_search_footer_pane.createSequentialGroup()
+					.addContainerGap(GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+					.addGroup(gl_search_footer_pane.createParallelGroup(Alignment.BASELINE)
+						.addComponent(btnFirst, GroupLayout.PREFERRED_SIZE, 31, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnPre, GroupLayout.PREFERRED_SIZE, 30, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnNext, GroupLayout.PREFERRED_SIZE, 30, GroupLayout.PREFERRED_SIZE)
+						.addComponent(btnLast, GroupLayout.PREFERRED_SIZE, 28, GroupLayout.PREFERRED_SIZE)
+						.addComponent(comboBox, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
+						.addComponent(lblNewLabel))
+					.addContainerGap())
+		);
+		search_footer_pane.setLayout(gl_search_footer_pane);
+		
+		textPane = new JTextPane();
 		textPane.setFont(new Font("SansSerif", Font.PLAIN, 14));
 		textPane.setContentType("text/html");
 		textPane.setEditable(false);
-		final HTMLEditorKit kit=new HTMLEditorKit();
+		kit=new HTMLEditorKit();
 		textPane.setEditorKit(kit);
-		StyleSheet ss=kit.getStyleSheet();
+		ss=kit.getStyleSheet();
 		ss.addRule("span.red {color:red;}");
 		ss.addRule("body {font-family:sans-serif,Georgia,·ÂËÎ;}");
-		final Document doc = kit.createDefaultDocument();
+		doc = kit.createDefaultDocument();
 		doc.putProperty("IgnoreCharsetDirective", new Boolean(true));
 		textPane.setDocument(doc);
 		
@@ -256,21 +342,6 @@ public class LuceneFrame extends JFrame {
 		scrollPane.setAutoscrolls(true);
 		panel_1.add(scrollPane, BorderLayout.CENTER);
 		
-		btnSearch.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				textPane.setText("");
-				if(queryTextField.getText().trim().equals("")){
-					lblQueryRequired.setText("You must enter a query word!");
-				}else{
-					try {
-						String str=Queryer.search(indexFile, queryTextField.getText());
-						kit.read(new StringReader(str), doc, 0);
-					} catch (Exception e1) {
-						e1.printStackTrace();
-					}
-				}
-			}
-		});
 		
 //		File htmlFile=new File("E:/BufferFolder/lucene/docs/demo.html");
 //
@@ -291,6 +362,57 @@ public class LuceneFrame extends JFrame {
 		} catch (IOException e) {
 			e.printStackTrace();
 			return "Exception occurred during creating index!";
+		}
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if(e.getSource()==btnSearch){
+			queryWord=queryTextField.getText();
+			if(queryWord.trim().equals("")){
+				lblQueryRequired.setText("You must enter a query word!");
+			}else{
+				queryer.setPageNo(1);
+				search();
+			}
+		}else if(e.getSource()==btnFirst){
+			queryer.setPageNo(1);
+			search();
+		}else if(e.getSource()==btnPre){
+			int number=queryer.getPageNo();
+			int pre=number>1 ? number-1 : number;
+			queryer.setPageNo(pre);
+			search();
+			
+		}else if(e.getSource()==btnNext){
+			int number=queryer.getPageNo();
+			int total=queryer.getPageTotal();
+			int next=number<total ? number+1 : number;
+			queryer.setPageNo(next);
+			search();
+			
+		}else if(e.getSource()==btnLast){
+			int total=queryer.getPageTotal();
+			queryer.setPageNo(total);
+			search();
+		}else if(e.getSource()==comboBox){
+			@SuppressWarnings("rawtypes")
+			int selection=Integer.valueOf( ((JComboBox)e.getSource()).getSelectedItem().toString() );
+			queryer.setHitsPerPage(selection);
+		}
+	}
+	
+	private void search(){
+		textPane.setText("");
+		queryer.setPageTotal(5);
+		try {
+			String str=queryer.search(indexFile, queryWord);
+			kit.read(new StringReader(str), doc, 0);
+			int pageNo=queryer.getPageNo();
+			int pageTotal=queryer.getPageTotal();
+			lblPage.setText("µ±Ç°ÊÇµÚ"+pageNo+"Ò³£¬×Ü¹²"+pageTotal+"Ò³");
+		} catch (Exception e1) {
+			e1.printStackTrace();
 		}
 	}
 }

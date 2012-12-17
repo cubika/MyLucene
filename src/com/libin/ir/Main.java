@@ -14,9 +14,9 @@ public class Main {
 			e.printStackTrace();
 		}
 		
-		String query="中文";
+		//String query="中文";
 		try {
-			Queryer.search(indexDir, query);
+			//Queryer.search(indexDir, query);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
