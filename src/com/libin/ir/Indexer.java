@@ -15,8 +15,20 @@ import org.apache.lucene.util.Version;
 import org.apache.pdfbox.pdfparser.PDFParser;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.util.PDFTextStripper;
+import org.apache.poi.hslf.HSLFSlideShow;
+import org.apache.poi.hslf.model.Slide;
+import org.apache.poi.hslf.model.TextRun;
+import org.apache.poi.hslf.usermodel.SlideShow;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
 import org.apache.poi.hwpf.HWPFDocument;
 import org.apache.poi.hwpf.usermodel.Range;
+import org.dom4j.DocumentException;
+import org.dom4j.io.SAXReader;
+import org.htmlparser.Parser;
+import org.htmlparser.util.ParserException;
+import org.htmlparser.visitors.TextExtractingVisitor;
 
 public class Indexer {
 	
@@ -70,10 +82,19 @@ public class Indexer {
 					temp=readWord(dataDir);
 				}else if(suffix.equals("pdf")){
 					temp=readPdf(dataDir);
+				}else if(suffix.equals("xls")){
+					temp=readExcel(dataDir);
+				}else if(suffix.equals("ppt") || suffix.equals("pptx")){
+					temp=readPowerPoint(dataDir);
+				}else if(suffix.equals("html")){
+					temp=readHtml(dataDir);
+				}else if(suffix.equals("xml")){
+					temp=readXML(dataDir);
 				}else{
-					temp=FileReaderAll(dataDir.getCanonicalPath(),"GBK");
+					temp=readTXT(dataDir);
 				}
 				
+				System.out.println(temp);
 				Document doc=new Document();
 		        /** 
 		         * Field.Index有五个属性，分别是：  
@@ -90,18 +111,39 @@ public class Indexer {
 			}
 		}
 	}
-	
-    private static String FileReaderAll(String FileName, String charset) throws IOException{
+    
+    private static String readTXT(File inputFile) throws IOException{
     	String line;
+    	String charset=checkEncode(inputFile);
     	StringBuffer temp = new StringBuffer();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(FileName),charset));      
+        BufferedReader reader = new BufferedReader(new InputStreamReader(new FileInputStream(inputFile),charset));      
         while  ((line=reader.readLine()) != null )   {      
            temp.append(line);
            temp.append('\n');
         }       
-        reader.close();      
-        return temp.toString();      
-   }  
+        reader.close();
+        return temp.toString();
+    }
+    
+    private static String readXML(File inputFile) throws IOException {
+    	SAXReader saxReader = new SAXReader();
+    	org.dom4j.Document document;
+		try {
+			document = saxReader.read(inputFile);
+			String content=document.asXML();
+			content=content.replaceAll("<[^>]*>", "");
+/*	    	ByteArrayOutputStream out = new ByteArrayOutputStream(); 
+	        OutputFormat format = new OutputFormat("  ", true, "UTF-8"); 
+	        XMLWriter writer = new XMLWriter(out, format); 
+	        writer.write(document); 
+	        String content = out.toString("UTF-8");*/
+	        return content;
+		} catch (DocumentException e) {
+			e.printStackTrace();
+			return null;
+		}
+
+    }
 
     private static String readWord(File inputFile) throws IOException{
        FileInputStream fis = new FileInputStream(inputFile);  
@@ -122,5 +164,96 @@ public class Indexer {
         pdd.close();  
         fis.close();  
         return text;  
+    }
+    
+    public static String readExcel(File inputFile) throws IOException {  
+        FileInputStream fis = new FileInputStream(inputFile);  
+        StringBuilder sb = new StringBuilder();  
+        HSSFWorkbook wb=new HSSFWorkbook(fis);   
+        
+        int sheetNum=wb.getNumberOfSheets();   
+        
+        for(int i=0;i<sheetNum;i++)   
+        {   
+            HSSFSheet childSheet = wb.getSheetAt(i);
+            int rowNum = childSheet.getPhysicalNumberOfRows(); 
+            for(int j=0;j<rowNum;j++)   
+            {   
+                HSSFRow row = childSheet.getRow(j);    
+                int cellNum=row.getPhysicalNumberOfCells();   
+                   
+                for(int k=0;k<cellNum;k++)   
+                {   
+                	String content=row.getCell(k).toString()+" ";
+                	sb.append(content);
+                }   
+            }   
+               
+        }   
+
+        fis.close();  
+        return sb.toString();  
+    }  
+
+    public static String readPowerPoint(File inputFile) throws IOException { 
+    	StringBuffer content = new StringBuffer();
+    	FileInputStream fis=new FileInputStream(inputFile);
+    	SlideShow ss=new SlideShow(new HSLFSlideShow(fis));
+    	Slide[] slides=ss.getSlides();
+    	for(int i=0;i<slides.length;i++){
+    		TextRun[] tr=slides[i].getTextRuns();
+    		for(int j=0;j<tr.length;j++){
+    			content.append(tr[j].getText());
+    		}
+    		//content.append(slides[i].getTitle());
+    	}
+    	return content.toString();
+    }
+    
+    public static String readHtml(File inputFile){
+//    	StringBean sb = new StringBean();
+//        String htmlPath = inputFile.getAbsolutePath();
+//        //设置不需要得到页面所包含的链接信息
+//        sb.setLinks(false);
+//        //设置将不间断空格由正规空格所替代
+//        sb.setReplaceNonBreakingSpaces(true);
+//        //设置将一序列空格由一个单一空格所代替
+//        sb.setCollapse(true);
+//        //传入要解析的URL
+//        sb.setURL(htmlPath);
+//        return sb.getStrings();
+        
+    	String path=inputFile.getAbsolutePath();
+    	Parser parser;
+		try {
+			parser = new Parser(path);
+	    	TextExtractingVisitor visitor = new TextExtractingVisitor();
+	        parser.visitAllNodesWith(visitor); 
+	        return visitor.getExtractedText();
+		} catch (ParserException e) {
+			e.printStackTrace();
+			return null;
+		}
+    }
+    
+    private static String checkEncode(File inputFile) throws IOException{
+    	
+    	FileInputStream fis=new FileInputStream(inputFile);
+        byte[] head = new byte[3];  
+         fis.read(head);   
+         String code = "";  
+    
+             code = "gb2312";  
+         if (head[0] == -1 && head[1] == -2 )  
+             code = "UTF-16";  
+         if (head[0] == -2 && head[1] == -1 )  
+             code = "Unicode";  
+         if(head[0]==-17 && head[1]==-69 && head[2] ==-65)  
+             code = "UTF-8";  
+           
+         System.out.println(code); 
+         fis.close();
+         
+         return code;
     }
 }

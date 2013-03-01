@@ -50,7 +50,7 @@ public class LuceneFrame extends JFrame implements ActionListener {
 	private JButton btnPre;
 	private JButton btnNext;
 	private JButton btnLast;
-	private JComboBox<String> comboBox;
+	private JComboBox comboBox;
 	
 	private Queryer queryer=new Queryer();
 	private String queryWord;
@@ -132,7 +132,6 @@ public class LuceneFrame extends JFrame implements ActionListener {
 					docTextField.setText(docFile.getCanonicalPath());
 					System.out.println("Choose document file : " + docFile.getCanonicalPath());
 				} catch (IOException e) {
-					e.printStackTrace();
 				}
 			}
 		});
@@ -149,7 +148,6 @@ public class LuceneFrame extends JFrame implements ActionListener {
 					indexTextField.setText(indexFile.getCanonicalPath());
 					System.out.println("Choose index folder : " + indexFile.getCanonicalPath());
 				} catch (IOException ex) {
-					ex.printStackTrace();
 				}				
 			}
 		});
@@ -284,9 +282,9 @@ public class LuceneFrame extends JFrame implements ActionListener {
 		btnLast.setFont(new Font("·ÂËÎ", Font.BOLD, 14));
 		btnLast.addActionListener(this);
 		
-		comboBox = new JComboBox<String>();
+		comboBox = new JComboBox();
 		comboBox.setFont(new Font("Consolas", Font.PLAIN, 14));
-		comboBox.setModel(new DefaultComboBoxModel<String>(new String[] {"5", "10", "15"}));
+		comboBox.setModel(new DefaultComboBoxModel(new String[] {"5", "10", "15"}));
 		comboBox.setToolTipText("");
 		comboBox.addActionListener(this);
 		
@@ -369,10 +367,13 @@ public class LuceneFrame extends JFrame implements ActionListener {
 	public void actionPerformed(ActionEvent e) {
 		if(e.getSource()==btnSearch){
 			queryWord=queryTextField.getText();
-			if(queryWord.trim().equals("")){
+			if(indexFile==null){
+				lblQueryRequired.setText("Please choose index file first!");
+			}else if(queryWord.trim().equals("")){
 				lblQueryRequired.setText("You must enter a query word!");
 			}else{
 				queryer.setPageNo(1);
+				queryer.setPageTotal(5);
 				search();
 			}
 		}else if(e.getSource()==btnFirst){
@@ -396,7 +397,6 @@ public class LuceneFrame extends JFrame implements ActionListener {
 			queryer.setPageNo(total);
 			search();
 		}else if(e.getSource()==comboBox){
-			@SuppressWarnings("rawtypes")
 			int selection=Integer.valueOf( ((JComboBox)e.getSource()).getSelectedItem().toString() );
 			queryer.setHitsPerPage(selection);
 		}
@@ -404,7 +404,6 @@ public class LuceneFrame extends JFrame implements ActionListener {
 	
 	private void search(){
 		textPane.setText("");
-		queryer.setPageTotal(5);
 		try {
 			String str=queryer.search(indexFile, queryWord);
 			kit.read(new StringReader(str), doc, 0);
